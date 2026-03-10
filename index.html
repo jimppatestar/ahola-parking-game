@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ahola Transport – WAY AHEAD Parking Puzzle</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+  :root { --red:#CB043E; --dark:#3C3C3B; --grey:#E3E3E3; --cell:74px; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#181818;font-family:'Barlow',sans-serif;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+  header{width:100%;background:#2a2a2a;border-bottom:3px solid var(--red);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
+  .logo-area{display:flex;align-items:center;gap:14px;}
+  .logo-svg{width:220px;height:auto;}
+  .logo-svg .cls-1{fill:#ffffff !important;}
+  .header-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:.13em;text-transform:uppercase;color:#bbb;line-height:1.15;}
+  .header-title span{color:var(--red);display:block;font-size:1.3rem;}
+  .header-stats{display:flex;gap:24px;}
+  .stat-box{text-align:center;}
+  .stat-val{font-family:'Barlow Condensed',sans-serif;font-size:1.9rem;font-weight:900;color:var(--red);line-height:1;}
+  .stat-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-top:2px;}
+  main{display:flex;gap:24px;padding:24px 16px;align-items:flex-start;flex-wrap:wrap;justify-content:center;}
+  .level-panel{background:#222;border:1px solid #333;border-radius:4px;padding:18px 14px;width:196px;flex-shrink:0;}
+  .panel-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.68rem;text-transform:uppercase;letter-spacing:.14em;color:#777;margin-bottom:10px;border-bottom:1px solid #333;padding-bottom:7px;}
+  .level-btn{display:block;width:100%;padding:8px 10px;margin-bottom:4px;background:#181818;border:1px solid #2e2e2e;border-radius:3px;color:#bbb;font-family:'Barlow Condensed',sans-serif;font-size:.88rem;font-weight:600;letter-spacing:.05em;cursor:pointer;text-align:left;transition:all .13s;position:relative;}
+  .level-btn:hover{background:#262626;border-color:var(--red);color:#fff;}
+  .level-btn.active{background:var(--red);border-color:var(--red);color:#fff;}
+  .level-btn .diff{float:right;font-size:.67rem;opacity:.65;font-weight:400;}
+  .level-btn .solved-mark{position:absolute;right:8px;color:#5cb85c;font-size:.9rem;}
+  .instructions{margin-top:18px;padding-top:12px;border-top:1px solid #2e2e2e;font-size:.76rem;color:#777;line-height:1.65;}
+  .instructions strong{color:#bbb;}
+  .game-area{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .level-header{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.35rem;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-align:center;}
+  .level-header span{color:var(--red);}
+  .grid-wrapper{position:relative;}
+  .exit-marker{position:absolute;right:-30px;top:calc(2*var(--cell) + var(--cell)/2 - 14px);width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:26px solid var(--red);filter:drop-shadow(0 0 5px rgba(203,4,62,.7));animation:pex 1.6s ease-in-out infinite;}
+  @keyframes pex{0%,100%{opacity:1;transform:translateX(0);}50%{opacity:.55;transform:translateX(5px);}}
+  .exit-label{position:absolute;right:-66px;top:calc(2*var(--cell) + var(--cell)/2 + 16px);font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;color:var(--red);text-transform:uppercase;text-align:center;width:56px;}
+  #grid{display:grid;grid-template-columns:repeat(6,var(--cell));grid-template-rows:repeat(6,var(--cell));position:relative;background:#111;border:2px solid #3a3a3a;box-shadow:0 8px 48px rgba(0,0,0,.7);}
+  .cell{width:var(--cell);height:var(--cell);border:1px solid #1f1f1f;background:#141414;}
+  .cell[data-r="2"]{background:#161818;}
+  .vehicle{position:absolute;cursor:grab;user-select:none;z-index:10;transition:filter .1s;}
+  .vehicle:active{cursor:grabbing;}
+  .vehicle.dragging{z-index:100;filter:brightness(1.2) drop-shadow(0 4px 18px rgba(0,0,0,.8));}
+  .btn-row{display:flex;gap:10px;}
+  .btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.88rem;letter-spacing:.1em;text-transform:uppercase;padding:9px 20px;border:none;cursor:pointer;border-radius:3px;transition:all .13s;}
+  .btn-primary{background:var(--red);color:#fff;}
+  .btn-primary:hover{background:#e0063f;transform:translateY(-1px);}
+  .btn-secondary{background:#2e2e2e;color:#bbb;border:1px solid #3a3a3a;}
+  .btn-secondary:hover{background:#363636;color:#fff;}
+  #win-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;align-items:center;justify-content:center;}
+  #win-overlay.show{display:flex;animation:fi .35s ease;}
+  @keyframes fi{from{opacity:0;}to{opacity:1;}}
+  .win-box{background:#222;border:2px solid var(--red);border-radius:6px;padding:36px 52px;text-align:center;max-width:420px;}
+  .win-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:3rem;text-transform:uppercase;letter-spacing:.06em;color:var(--red);line-height:1;margin-bottom:6px;}
+  .win-sub{font-size:.9rem;color:#999;margin-bottom:20px;line-height:1.55;}
+  .win-moves{font-family:'Barlow Condensed',sans-serif;font-size:1.9rem;font-weight:700;color:#fff;margin-bottom:26px;}
+  .win-moves span{color:var(--red);}
+  @media(max-width:580px){:root{--cell:52px;}.level-panel{display:none;}.logo-svg{width:110px;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-area">
+    <svg class="logo-svg" id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1517.52 366.89"><defs><style>.cls-1{fill:#3c3c3b;}.cls-2{fill:#cb043e;}</style></defs><g><path class="cls-2" d="M219.52,366.89c-7.13,0-13.51-5-15-12.25-1.7-8.29,3.64-16.4,11.93-18.1,2.87-.59,5.77-1.27,8.61-2.03,52.74-14.04,94.53-55.45,109.08-108.06,2.26-8.16,10.7-12.95,18.86-10.69,8.16,2.26,12.95,10.7,10.69,18.86-17.43,63.06-67.53,112.69-130.74,129.52-3.41.91-6.88,1.73-10.33,2.43-1.04.21-2.08.32-3.1.32Z"/><path class="cls-2" d="M396.39,170.32c-1.41,0-74.46-.11-146.2-.21,10.88-35.67,20.32-63.54,22.56-71.1,1.24-4.16,4.79-20.12-12.29-21.93-1.13-.12-18.37-2.03-39.46-1.07-11.52.52-21.08,2.87-36.41,14.37-10.84,8.13-19.75,23.39-28.56,47.3-4.1,11.24-7.88,22.14-11.26,32.27-18.34-.03-30.62-.04-32.81-.04-33.25,0-48.06,21.57-50.64,40.04-1.95,13.98,1.34,26.65,9.51,36.66,8.75,10.71,22.26,17.15,38.06,18.14,22.44,1.41,44.14-14.97,50.45-38.1,1.76-6.46,4.38-15.39,7.71-26,12.64.02,26.75.04,41.62.06-14.55,46.82-27.66,87.23-31.77,95.3-6.73,13.23-15.56,26.12-42.44,26.12-.39,0-.78,0-1.18,0-20.9-.29-42.01-14.72-51.86-22.47-32.29-29.29-50.75-70.81-50.75-114.48C30.66,99.98,99.98,30.66,185.18,30.66c34.44,0,67.01,11.08,94.22,32.04,26.36,20.31,45.77,49.04,54.65,80.9,2.27,8.16,10.73,12.93,18.89,10.65,8.16-2.27,12.93-10.73,10.65-18.89-10.64-38.2-33.9-72.63-65.47-96.96C265.5,13.28,226.45,0,185.18,0,83.07,0,0,83.07,0,185.18c0,48.21,18.77,94.22,51.97,128.62.72,1.23,32.96,38.19,80.88,39,.53,0,1.05.01,1.58.01,42.97,0,60.4-24.42,69.8-42.89,5.64-11.1,21.5-60.49,36.55-109.16,74.6.11,154.09.22,155.57.22h.02c8.46,0,15.32-6.85,15.33-15.31.01-8.47-6.84-15.34-15.31-15.35ZM129.75,218.59c-1.72,6.32-8.41,18.41-22.3,17.45-9.79,0-17.73-7.94-17.73-17.73s7.94-17.73,17.73-17.73c.62,0,14.67.01,27.52.03-2.15,7.1-3.91,13.19-5.22,17.98ZM237.29,109.55c-5.93,19.81-12.48,38.67-19.17,60.51-14.41-.02-28.28-.04-40.99-.06,2.41-7.01,4.98-14.31,7.7-21.77,8.93-24.25,13.66-31.02,15.09-32.93,8.62-11.5,40.25-14.37,37.37-5.75Z"/></g><g><path class="cls-2" d="M1198.48,61.6h-49.09v109.17c0,4.72,1.24,8.97,3.73,12.73,2.49,3.77,5.55,6.96,9.2,9.58,3.64,2.62,7.51,4.59,11.61,5.91,4.09,1.31,7.74,1.97,10.94,1.97h116.85v-31.25h-90.7c-.71.01-5.51.28-8.14-1.58-3.46-1.76-4.41-5.32-4.41-6.54V61.6Z"/><path class="cls-2" d="M1363.13,136.96h106.04v-33.96c0-2.28.28-4.8-1.67-6.99-1.96-2.19-4.45-3-6.87-2.98l-83.01.06c-2.49,0-4.97.14-7.38,2.2-1.89,1.76-2.21,5.33-2.24,7.69v97.92h-48.83v-105.25c-.01-14.52,10.27-24.36,14.27-26.9,5.59-3.34,12.9-7.22,24.46-7.22h120.62c12.8,0,20.41,4.44,24.51,6.72,4.1,2.27,14.45,13.03,14.45,26.43l.05,106.22h-48.32v-33.14h-106.21l.14-30.79Z"/><path class="cls-2" d="M508.68,136.96h103.55v-33.96c0-2.28.28-4.8-1.67-6.99-1.96-2.19-4.45-3-6.87-2.98l-83.01.06c-2.49,0-4.97.14-7.39,2.2-1.89,1.76-2.21,5.33-2.24,7.69v97.92h-48.83v-105.25c-.01-14.52,10.27-24.36,14.28-26.9,5.59-3.34,12.9-7.22,24.46-7.22h120.62c12.8,0,20.41,4.44,24.51,6.72,4.09,2.27,14.44,13.03,14.44,26.43l.05,106.22h-48.33v-33.14h-103.56l-.02-30.79Z"/><path class="cls-2" d="M1120.69,168.13c0,10.27-6.62,18.33-10.05,22.24-3.9,4.37-14.42,10.45-28.37,10.51h-120.27c-14.63.06-21.98-4.76-27.13-8.21-4.83-3.22-12.55-14.34-12.55-24.38l.11-71.84c0-14.49,8.74-23.96,13.3-27.07,4.41-2.84,11.85-7.86,25.93-7.86h120.88c8.62-.07,20.54,3.42,26.93,9.09,5.22,4.52,11.21,13.95,11.21,24.99v72.53ZM971.28,160.43c.01,2.36,1.1,5.21,2.89,6.86,1.48,1.34,3.97,1.88,6.62,1.96l82.54.11c3.16.04,6.12-.96,7.56-2.68,1.24-1.48,1.79-3.06,1.79-7.16l-.02-57.3c.02-2.8-.41-4.76-1.77-6.29-1.44-1.65-3.7-2.9-6.49-2.9h-83.07c-2.49,0-5.54.21-7.87,2.28-1.68,1.65-2.28,4.11-2.19,7.01v58.12Z"/><polygon class="cls-2" points="844.53 200.88 844.53 147.32 743.13 147.32 743.13 200.88 694.3 200.88 694.3 61.52 743.13 61.52 743.13 116.53 844.53 116.53 844.53 61.52 893.1 61.52 893.1 200.88 844.53 200.88"/></g><polygon class="cls-1" points="462.23 251.25 499.89 251.25 499.89 308.18 523.07 308.18 523.07 251.25 560.73 251.25 560.73 233.16 462.23 233.16 462.23 251.25"/><path class="cls-1" d="M672.09,237.94h0c-4.11-3.11-9.07-4.68-14.73-4.68h-77.43v74.92h23.05v-23.83l25.89-.1,26.58,23.93h22.99v-7.04l-19.02-16.96c4.82-.34,9.08-1.88,12.68-4.61,4.21-3.18,6.34-7.02,6.34-11.43v-18.78c0-4.4-2.13-8.25-6.34-11.43ZM655.12,251.25v14.93h-52.15v-14.93h52.15Z"/><path class="cls-1" d="M794.61,237.79c-4.1-3.07-9.06-4.62-14.73-4.62h-56.49c-5.67,0-10.6,1.56-14.66,4.63-4.16,3.15-6.27,7.01-6.27,11.48v58.91h23.04v-23.42h52.15v23.42h23.31v-58.91c0-4.47-2.13-8.34-6.35-11.48ZM777.64,251.25v15.43h-52.15v-15.43h52.15Z"/><path class="cls-1" d="M1037.83,237.79c-4.11-3.07-9.02-4.62-14.59-4.62h-56.63c-5.67,0-10.6,1.56-14.66,4.63-4.16,3.15-6.27,7.01-6.27,11.48v14.33c0,4.47,2.11,8.33,6.27,11.48,4.06,3.07,9,4.63,14.66,4.63h54.25v10.38h-52.15v-5.96h-23.05v7.93c0,4.47,2.11,8.33,6.27,11.48,4.06,3.07,9,4.63,14.66,4.63h56.63c5.58,0,10.49-1.56,14.59-4.62,4.21-3.15,6.34-7.01,6.34-11.48v-14.33c0-4.47-2.13-8.34-6.34-11.48-4.11-3.07-9.02-4.62-14.59-4.62h-54.52v-10.38h52.15v5.96h23.31v-7.93c0-4.47-2.13-8.34-6.34-11.48Z"/><path class="cls-1" d="M1159.88,237.94h0c-4.11-3.11-9.07-4.68-14.73-4.68h-77.43v74.92h23.04v-23.83l54.39-.1c5.67,0,10.63-1.57,14.73-4.68,4.21-3.18,6.34-7.02,6.34-11.43v-18.78c0-4.4-2.13-8.25-6.34-11.43ZM1142.9,251.25v14.93h-52.15v-14.93h52.15Z"/><path class="cls-1" d="M1277.11,237.79c-4.11-3.07-9.02-4.62-14.59-4.62h-56.63c-5.67,0-10.6,1.56-14.66,4.63-4.16,3.15-6.27,7.01-6.27,11.48v42.8c0,4.47,2.11,8.33,6.27,11.48,4.06,3.07,9,4.63,14.66,4.63h56.63c5.58,0,10.49-1.56,14.59-4.62,4.21-3.15,6.34-7.01,6.34-11.48v-42.8c0-4.47-2.13-8.34-6.34-11.48ZM1260.15,251.25v38.85h-52.15v-38.85h52.15Z"/><path class="cls-1" d="M916.43,237.79c-4.11-3.07-9.02-4.62-14.59-4.62h-56.63c-5.67,0-10.6,1.56-14.66,4.63-4.16,3.15-6.27,7.01-6.27,11.48v58.91h23.05v-56.94h52.15v56.94h23.31v-58.91c0-4.47-2.13-8.34-6.34-11.48Z"/><path class="cls-1" d="M1397.92,237.94h0c-4.11-3.11-9.07-4.68-14.73-4.68h-77.43v74.92h23.05v-23.83l25.89-.1,26.58,23.93h22.99v-7.04l-19.02-16.96c4.82-.34,9.08-1.88,12.68-4.61,4.21-3.18,6.34-7.02,6.34-11.43v-18.78c0-4.4-2.13-8.25-6.34-11.43ZM1380.94,251.25v14.93h-52.15v-14.93h52.15Z"/><polygon class="cls-1" points="1419.02 233.16 1419.02 251.25 1456.68 251.25 1456.68 308.18 1479.86 308.18 1479.86 251.25 1517.52 251.25 1517.52 233.16 1419.02 233.16"/></svg>
+    <div class="header-title"><span>Parking Puzzle</span>Way Ahead Challenge</div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-box"><div class="stat-val" id="move-counter">0</div><div class="stat-lbl">Moves</div></div>
+    <div class="stat-box"><div class="stat-val" id="level-display">1</div><div class="stat-lbl">Level</div></div>
+  </div>
+</header>
+<main>
+  <div class="level-panel">
+    <div class="panel-title">Select Level</div>
+    <div id="level-list"></div>
+    <div class="instructions">
+      <strong>How to play:</strong><br>
+      Slide trucks to clear a path for the <span style="color:#ffffff;background:#CB043E;padding:0 4px;border-radius:2px;font-weight:700">white AHOLA truck</span> (row 3).<br><br>
+      Get it to the <span style="color:var(--red)">exit →</span><br><br>
+      Trucks only slide along their own axis.<br><br>
+      <strong>Drag</strong> with mouse or touch.
+    </div>
+  </div>
+  <div class="game-area">
+    <div class="level-header"><span id="lh-name">L1 Morning Rush</span></div>
+    <div class="grid-wrapper">
+      <div id="grid"></div>
+      <div class="exit-marker"></div>
+      <div class="exit-label">EXIT</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="resetLevel()">↺ Reset</button>
+      <button class="btn btn-primary" onclick="nextLevel()">Next Level →</button>
+    </div>
+  </div>
+</main>
+<div id="win-overlay">
+  <div class="win-box">
+    <svg style="width:220px;margin-bottom:18px;display:block;margin-left:auto;margin-right:auto;" id="wa_logo" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 743.04 54.1"><defs><style>.wa-cls{fill:#fff;}</style></defs><polygon class="wa-cls" points="76.2 30.14 61.57 0 46.79 0 32.24 30.13 17.7 0 0 0 25.73 53.62 25.96 54.1 38.44 54.1 54.13 21.49 69.92 54.1 82.4 54.1 108.35 0 90.75 0 76.2 30.14"/><path class="wa-cls" d="M184.36,3.33c-2.95-2.21-6.51-3.33-10.58-3.33h-40.6c-4.07,0-7.62,1.12-10.54,3.34-2.99,2.27-4.51,5.05-4.51,8.28v42.48h16.56v-16.89h37.48v16.89h16.75V11.62c0-3.22-1.53-6.01-4.56-8.28ZM172.17,13.04v11.13h-37.48v-11.13h37.48Z"/><polygon class="wa-cls" points="238.58 20.35 217.22 0 197.14 0 230.25 34.02 230.25 54.1 246.91 54.1 246.91 34.09 280.12 0 259.84 0 238.58 20.35"/><path class="wa-cls" d="M392.08,3.33c-2.95-2.21-6.51-3.33-10.58-3.33h-40.6c-4.07,0-7.62,1.12-10.54,3.34-2.99,2.27-4.51,5.05-4.51,8.28v42.48h16.56v-16.89h37.48v16.89h16.75V11.62c0-3.22-1.53-6.01-4.56-8.28ZM379.89,13.04v11.13h-37.48v-11.13h37.48Z"/><polygon class="wa-cls" points="469.34 20.53 430.23 20.53 430.23 0 413.67 0 413.67 54.1 430.23 54.1 430.23 33.57 469.34 33.57 469.34 54.1 485.91 54.1 485.91 0 469.34 0 469.34 20.53"/><polygon class="wa-cls" points="503.13 54.1 568.64 54.1 568.64 41.06 519.88 41.06 519.88 33.57 559.14 33.57 559.14 20.53 519.88 20.53 519.88 13.04 568.64 13.04 568.64 0 503.13 0 503.13 54.1"/><path class="wa-cls" d="M650.56,3.33c-2.95-2.21-6.51-3.33-10.58-3.33h-40.6c-4.07,0-7.62,1.12-10.54,3.34-2.99,2.27-4.51,5.05-4.51,8.28v42.48h16.56v-16.89h37.47v16.89h16.76V11.62c0-3.22-1.54-6.01-4.56-8.28ZM638.37,13.04v11.13h-37.47v-11.13h37.47Z"/><path class="wa-cls" d="M738.48,3.33c-2.95-2.21-6.51-3.33-10.59-3.33h-55.65v54.1h55.65c4.07,0,7.63-1.12,10.59-3.33,3.03-2.27,4.56-5.05,4.56-8.28V11.62c0-3.23-1.53-6.01-4.56-8.28ZM726.29,13.04v28.02h-37.48V13.04h37.48Z"/></svg>
+    <div class="win-title">Delivered!</div>
+    
+    <div class="win-moves">Solved in <span id="win-moves-num">0</span> moves</div>
+    <div class="btn-row" style="justify-content:center;gap:10px;">
+      <button class="btn btn-secondary" onclick="closeWin();resetLevel()">Try Again</button>
+      <button class="btn btn-primary" onclick="closeWin();nextLevel()">Next Level →</button>
+    </div>
+  </div>
+</div>
+<script>
+// Validated collision-free levels. T=target Ahola truck, always H row=2, exit right.
+const LEVELS=[
+  {name:"L1 Morning Rush",difficulty:"Easy",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:2,row:0,len:2,dir:"V",color:"#2C6E8A"},
+    {id:"B",col:3,row:1,len:3,dir:"H",color:"#5c4a7a"},
+    {id:"C",col:5,row:2,len:2,dir:"V",color:"#2e6b3e"},
+    {id:"D",col:0,row:4,len:3,dir:"H",color:"#7a5c1e"},
+    {id:"E",col:3,row:3,len:3,dir:"V",color:"#1e5c5c"},
+  ]},
+  {name:"L2 Kokkola HQ",difficulty:"Easy",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:1,row:0,len:2,dir:"V",color:"#2C6E8A"},
+    {id:"B",col:2,row:0,len:3,dir:"H",color:"#5c4a7a"},
+    {id:"C",col:4,row:1,len:2,dir:"V",color:"#2e6b3e"},
+    {id:"D",col:3,row:1,len:2,dir:"V",color:"#7a5c1e"},
+    {id:"E",col:3,row:3,len:2,dir:"H",color:"#1e5c5c"},
+    {id:"F",col:5,row:1,len:3,dir:"V",color:"#6b2e2e"},
+    {id:"G",col:0,row:3,len:2,dir:"H",color:"#4a4a1e"},
+    {id:"H",col:3,row:4,len:2,dir:"H",color:"#1e3d6b"},
+  ]},
+  {name:"L3 Nykvarn Hub",difficulty:"Medium",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:0,row:0,len:2,dir:"H",color:"#2C6E8A"},
+    {id:"B",col:2,row:0,len:2,dir:"V",color:"#5c4a7a"},
+    {id:"C",col:3,row:0,len:2,dir:"H",color:"#2e6b3e"},
+    {id:"D",col:2,row:3,len:2,dir:"V",color:"#7a5c1e"},
+    {id:"E",col:3,row:3,len:2,dir:"H",color:"#1e5c5c"},
+    {id:"F",col:4,row:1,len:2,dir:"V",color:"#6b2e2e"},
+    {id:"G",col:5,row:2,len:3,dir:"V",color:"#4a4a1e"},
+    {id:"H",col:0,row:4,len:2,dir:"H",color:"#1e3d6b"},
+  ]},
+  {name:"L4 Naantali Hub",difficulty:"Medium",vehicles:[
+    {id:"T",col:1,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:0,row:0,len:3,dir:"V",color:"#2C6E8A"},
+    {id:"B",col:1,row:0,len:2,dir:"H",color:"#5c4a7a"},
+    {id:"C",col:3,row:0,len:2,dir:"V",color:"#2e6b3e"},
+    {id:"D",col:4,row:1,len:3,dir:"V",color:"#7a5c1e"},
+    {id:"E",col:3,row:4,len:2,dir:"H",color:"#1e5c5c"},
+    {id:"F",col:5,row:0,len:3,dir:"V",color:"#6b2e2e"},
+  ]},
+  {name:"L5 Tallinn Port",difficulty:"Hard",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:0,row:0,len:2,dir:"V",color:"#2C6E8A"},
+    {id:"B",col:1,row:0,len:2,dir:"H",color:"#5c4a7a"},
+    {id:"C",col:2,row:3,len:2,dir:"V",color:"#2e6b3e"},
+    {id:"D",col:3,row:0,len:2,dir:"H",color:"#7a5c1e"},
+    {id:"E",col:5,row:0,len:3,dir:"V",color:"#1e5c5c"},
+    {id:"F",col:3,row:1,len:2,dir:"V",color:"#6b2e2e"},
+    {id:"G",col:4,row:2,len:2,dir:"V",color:"#4a4a1e"},
+    {id:"H",col:0,row:3,len:2,dir:"H",color:"#1e3d6b"},
+    {id:"I",col:0,row:5,len:3,dir:"H",color:"#3d3055"},
+  ]},
+  {name:"L6 Polish Traffic Jam",difficulty:"Hard",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:2,row:0,len:2,dir:"V",color:"#2C6E8A"},
+    {id:"B",col:0,row:0,len:2,dir:"H",color:"#5c4a7a"},
+    {id:"C",col:3,row:0,len:2,dir:"H",color:"#2e6b3e"},
+    {id:"D",col:5,row:0,len:3,dir:"V",color:"#7a5c1e"},
+    {id:"E",col:2,row:4,len:2,dir:"V",color:"#1e5c5c"},
+    {id:"F",col:3,row:1,len:2,dir:"V",color:"#6b2e2e"},
+    {id:"G",col:4,row:1,len:2,dir:"V",color:"#4a4a1e"},
+    {id:"H",col:0,row:3,len:2,dir:"V",color:"#1e3d6b"},
+    {id:"I",col:1,row:3,len:2,dir:"H",color:"#3d3055"},
+    {id:"J",col:3,row:3,len:2,dir:"H",color:"#2C6E8A"},
+  ]}  ,
+  {name:"L7 Boden Up North",difficulty:"Easy",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:2,row:0,len:2,dir:"V",color:"#2C6E8A"},
+    {id:"B",col:0,row:1,len:2,dir:"H",color:"#5c4a7a"},
+    {id:"C",col:5,row:2,len:2,dir:"V",color:"#2e6b3e"},
+    {id:"D",col:2,row:3,len:2,dir:"H",color:"#7a5c1e"},
+    {id:"E",col:1,row:4,len:2,dir:"H",color:"#1e5c5c"},
+  ]},
+  {name:"L8 Jyväskylä",difficulty:"Medium",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:1,row:0,len:2,dir:"H",color:"#2C6E8A"},
+    {id:"B",col:3,row:0,len:2,dir:"V",color:"#5c4a7a"},
+    {id:"C",col:4,row:1,len:2,dir:"V",color:"#2e6b3e"},
+    {id:"D",col:5,row:2,len:2,dir:"V",color:"#7a5c1e"},
+    {id:"E",col:0,row:3,len:2,dir:"V",color:"#1e5c5c"},
+    {id:"F",col:3,row:3,len:2,dir:"H",color:"#6b2e2e"},
+    {id:"G",col:1,row:4,len:2,dir:"H",color:"#4a4a1e"},
+  ]},
+  {name:"L9 Stockholm Jam",difficulty:"Hard",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:2,row:3,len:2,dir:"H",color:"#2C6E8A"},
+    {id:"B",col:2,row:0,len:2,dir:"H",color:"#5c4a7a"},
+    {id:"C",col:1,row:0,len:2,dir:"V",color:"#2e6b3e"},
+    {id:"D",col:5,row:1,len:2,dir:"V",color:"#7a5c1e"},
+    {id:"E",col:3,row:4,len:2,dir:"H",color:"#1e5c5c"},
+    {id:"F",col:3,row:1,len:2,dir:"V",color:"#6b2e2e"},
+    {id:"G",col:1,row:4,len:2,dir:"H",color:"#4a4a1e"},
+    {id:"H",col:4,row:1,len:2,dir:"V",color:"#1e3d6b"},
+    {id:"I",col:3,row:5,len:2,dir:"H",color:"#3d3055"},
+    {id:"J",col:0,row:3,len:2,dir:"V",color:"#8b4513"},
+  ]},
+  {name:"L10 Oslo Morning Traffic",difficulty:"Hard",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:4,row:1,len:2,dir:"V",color:"#2C6E8A"},
+    {id:"B",col:2,row:3,len:2,dir:"V",color:"#5c4a7a"},
+    {id:"C",col:4,row:0,len:2,dir:"H",color:"#2e6b3e"},
+    {id:"D",col:5,row:3,len:2,dir:"V",color:"#7a5c1e"},
+    {id:"E",col:3,row:5,len:2,dir:"H",color:"#1e5c5c"},
+    {id:"F",col:0,row:4,len:2,dir:"V",color:"#6b2e2e"},
+    {id:"G",col:5,row:1,len:2,dir:"V",color:"#4a4a1e"},
+    {id:"H",col:2,row:1,len:2,dir:"H",color:"#1e3d6b"},
+    {id:"I",col:1,row:3,len:2,dir:"V",color:"#3d3055"},
+    {id:"J",col:0,row:0,len:3,dir:"H",color:"#8b4513"},
+  ]},
+  {name:"L11 Skopje Madness",difficulty:"Hard",vehicles:[
+    {id:"T",col:0,row:2,len:3,dir:"H",color:"#ffffff"},
+    {id:"A",col:0,row:0,len:2,dir:"H",color:"#2C6E8A"},
+    {id:"B",col:2,row:0,len:2,dir:"V",color:"#5c4a7a"},
+    {id:"C",col:3,row:0,len:1,dir:"H",color:"#2e6b3e"},
+    {id:"D",col:5,row:0,len:3,dir:"V",color:"#7a5c1e"},
+    {id:"E",col:3,row:1,len:2,dir:"V",color:"#1e5c5c"},
+    {id:"F",col:4,row:1,len:2,dir:"V",color:"#6b2e2e"},
+    {id:"G",col:0,row:3,len:2,dir:"V",color:"#4a4a1e"},
+    {id:"I",col:1,row:4,len:2,dir:"H",color:"#1e3d6b"},
+    {id:"J",col:3,row:4,len:2,dir:"V",color:"#3d3055"},
+    {id:"H",col:4,row:3,len:2,dir:"H",color:"#8b4513"},
+  ]}
+];
+
+const GS=6;
+let curLevel=0,vehicles=[],moves=0,dragState=null;
+let solved=new Set();
+try{solved=new Set(JSON.parse(localStorage.getItem('ahola_sv3')||'[]'));}catch(e){}
+function saveSolved(){try{localStorage.setItem('ahola_sv3',JSON.stringify([...solved]));}catch(e){}}
+
+// ── Color helpers ──
+function lighten(h,a){let r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return`rgb(${Math.min(255,r+a)},${Math.min(255,g+a)},${Math.min(255,b+a)})`;}
+function darken(h,a){let r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return`rgb(${Math.max(0,r-a)},${Math.max(0,g-a)},${Math.max(0,b-a)})`;}
+
+// ── Draw realistic truck top-view as inline SVG ──
+// Truck always drawn pointing RIGHT (cab at right end), then rotated for V.
+// Viewport units: each grid cell = 100 units wide, 44 units tall in the truck's direction.
+function makeTruckSVG(v, pxW, pxH) {
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('xmlns',ns);
+  svg.setAttribute('width',pxW);
+  svg.setAttribute('height',pxH);
+
+  const U=100; // units per grid cell in length direction
+  const BW=44; // body width in cross direction units
+  const TL=v.len*U; // total truck length in units
+
+  // For vertical trucks we rotate the whole drawing
+  // viewBox stays as if the truck is horizontal, then we rotate+swap
+  if(v.dir==='V'){
+    svg.setAttribute('viewBox',`0 0 ${BW} ${TL}`);
+    // Draw in a group rotated -90 deg about the svg center, translated to compensate
+    const cx=BW/2, cy=TL/2;
+    const g=document.createElementNS(ns,'g');
+    // rotate 90° so right-pointing becomes downward-pointing
+    g.setAttribute('transform',`translate(${BW},0) rotate(90) translate(0,0)`);
+    // After rotation: x→y, y→-x. We need the truck to point downward.
+    // Simpler: just draw with swapped axes
+    drawTruck(ns,g,v,TL,BW,true);
+    svg.appendChild(g);
+  } else {
+    svg.setAttribute('viewBox',`0 0 ${TL} ${BW}`);
+    const g=document.createElementNS(ns,'g');
+    drawTruck(ns,g,v,TL,BW,false);
+    svg.appendChild(g);
+  }
+  return svg;
+}
+
+function el(ns,parent,tag,attrs,txt){
+  const e=document.createElementNS(ns,tag);
+  for(const[k,v2]of Object.entries(attrs))e.setAttribute(k,v2);
+  if(txt!==undefined)e.textContent=txt;
+  parent.appendChild(e);
+  return e;
+}
+
+function drawTruck(ns,g,v,tLen,bWidth,isVertical){
+  // Top-view truck: cab on RIGHT (front/headlights), trailer on LEFT (rear).
+  // Style: distinct cab + trailer body, wheels along sides, no visible axle bar.
+  const col = v.color;
+  const cDark = darken(col,28);
+  const cLight = lighten(col,22);
+  const isTarget = v.id==='T';
+  const BW = bWidth;
+
+  const WW = 11;       // wheel length along truck axis
+  const WH = 7;        // wheel thickness across body
+  const WY_top = 1;
+  const WY_bot = BW - WH - 1;
+
+  const cabW = Math.max(14, Math.round(tLen * 0.14));
+  const trailerW = tLen - cabW;
+  const bodyFill = isTarget ? '#ffffff' : col;
+  const cabFill  = isTarget ? '#ffffff' : cDark;
+
+  // ── Shadow ──
+  el(ns,g,'rect',{x:3,y:3,width:tLen-4,height:BW-4,fill:'rgba(0,0,0,0.45)',rx:4});
+
+  // ── TRAILER body ──
+  el(ns,g,'rect',{x:0,y:0,width:trailerW,height:BW,fill:bodyFill,rx:3});
+  el(ns,g,'rect',{x:4,y:2,width:trailerW-8,height:Math.round(BW*0.18),fill:isTarget?'rgba(180,180,180,0.3)':'rgba(255,255,255,0.18)',rx:1});
+  el(ns,g,'rect',{x:0,y:BW-Math.round(BW*0.18),width:trailerW,height:Math.round(BW*0.18),fill:isTarget?'rgba(0,0,0,0.06)':cDark,rx:0});
+  el(ns,g,'rect',{x:0,y:0,width:trailerW,height:BW,fill:'none',stroke:isTarget?'#aaa':cDark,'stroke-width':'1.5',rx:3});
+
+  // ── CAB body ──
+  el(ns,g,'rect',{x:trailerW,y:2,width:cabW,height:BW-4,fill:cabFill,rx:4});
+  // Windscreen (yellow tint like reference image)
+  const wsX = trailerW + Math.round(cabW*0.26);
+  const wsW = Math.round(cabW*0.42);
+  const wsY = Math.round(BW*0.18);
+  const wsH = Math.round(BW*0.64);
+  el(ns,g,'rect',{x:wsX,y:wsY,width:wsW,height:wsH,fill:'rgba(210,210,210,0.9)',rx:2});
+  // Cab front face
+  el(ns,g,'rect',{x:tLen-6,y:3,width:6,height:BW-6,fill:isTarget?'#dddddd':cDark,rx:2});
+  // Headlights
+  el(ns,g,'rect',{x:tLen-5,y:5,width:5,height:6,fill:'rgba(255,248,160,0.97)',rx:1});
+  el(ns,g,'rect',{x:tLen-5,y:BW-11,width:5,height:6,fill:'rgba(255,248,160,0.97)',rx:1});
+  // Cab outline
+  el(ns,g,'rect',{x:trailerW,y:2,width:cabW,height:BW-4,fill:'none',stroke:isTarget?'#aaa':'#000','stroke-width':'1',rx:4});
+
+  // ── AHOLA label on trailer ──
+  if(isTarget){
+    el(ns,g,'text',{
+      x:trailerW/2, y:BW/2+5,
+      'text-anchor':'middle',
+      'font-family':"'Barlow Condensed',Arial,sans-serif",
+      'font-weight':'900','font-size':'14',
+      fill:'#CB043E','letter-spacing':'3'
+    },'AHOLA');
+  }
+
+  // ── WHEELS along trailer sides (no axle bar) ──
+  // Rear axle
+  const rearX = 5;
+  el(ns,g,'rect',{x:rearX,y:WY_top,width:WW,height:WH,fill:'#1a1a1a',rx:2});
+  el(ns,g,'rect',{x:rearX,y:WY_bot,width:WW,height:WH,fill:'#1a1a1a',rx:2});
+  // Mid axle (len>=3 only)
+  if(v.len>=3){
+    const midX = Math.round(trailerW/2) - Math.round(WW/2);
+    el(ns,g,'rect',{x:midX,y:WY_top,width:WW,height:WH,fill:'#1a1a1a',rx:2});
+    el(ns,g,'rect',{x:midX,y:WY_bot,width:WW,height:WH,fill:'#1a1a1a',rx:2});
+  }
+  // Drive axle (just behind cab)
+  const driveX = trailerW - WW - 5;
+  el(ns,g,'rect',{x:driveX,y:WY_top,width:WW,height:WH,fill:'#1a1a1a',rx:2});
+  el(ns,g,'rect',{x:driveX,y:WY_bot,width:WW,height:WH,fill:'#1a1a1a',rx:2});
+  // Steer axle (under cab)
+  const steerX = trailerW + Math.round(cabW*0.54) - Math.round(WW/2);
+  el(ns,g,'rect',{x:steerX,y:WY_top,width:WW,height:WH,fill:'#1a1a1a',rx:2});
+  el(ns,g,'rect',{x:steerX,y:WY_bot,width:WW,height:WH,fill:'#1a1a1a',rx:2});
+}
+
+// ── Collision helpers ──
+function canMoveFrom(id,toCol,toRow){
+  const g=Array.from({length:GS},()=>Array(GS).fill(null));
+  for(const v of vehicles){
+    if(v.id===id)continue;
+    for(let i=0;i<v.len;i++){
+      const r=v.dir==="H"?v.row:v.row+i;
+      const c=v.dir==="H"?v.col+i:v.col;
+      if(r>=0&&r<GS&&c>=0&&c<GS)g[r][c]=v.id;
+    }
+  }
+  const mv=vehicles.find(v=>v.id===id);
+  for(let i=0;i<mv.len;i++){
+    const r=mv.dir==="H"?toRow:toRow+i;
+    const c=mv.dir==="H"?toCol+i:toCol;
+    if(mv.id==="T"&&mv.dir==="H"&&c>=GS)continue;
+    if(r<0||r>=GS||c<0||c>=GS)return false;
+    if(g[r][c])return false;
+  }
+  return true;
+}
+function checkWin(){const t=vehicles.find(v=>v.id==="T");return t&&t.dir==="H"&&t.row===2&&t.col+t.len>=GS;}
+
+// ── Render ──
+function cellPx(){return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell'))||74;}
+
+function renderGrid(){
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  const CP=cellPx();
+  for(let r=0;r<GS;r++)for(let c=0;c<GS;c++){
+    const cell=document.createElement('div');
+    cell.className='cell';cell.dataset.r=r;cell.dataset.c=c;
+    grid.appendChild(cell);
+  }
+  const GAP=3;
+  for(const v of vehicles){
+    const vW=v.dir==="H"?v.len*CP-GAP*2:CP-GAP*2;
+    const vH=v.dir==="V"?v.len*CP-GAP*2:CP-GAP*2;
+    const el2=document.createElement('div');
+    el2.className='vehicle';el2.dataset.id=v.id;
+    el2.style.cssText=`width:${vW}px;height:${vH}px;left:${v.col*CP+GAP}px;top:${v.row*CP+GAP}px;`;
+    const svg=makeTruckSVG(v,vW,vH);
+    svg.style.display='block';
+    el2.appendChild(svg);
+    el2.addEventListener('mousedown',startDrag);
+    el2.addEventListener('touchstart',startTouchDrag,{passive:false});
+    grid.appendChild(el2);
+  }
+  const mc=document.getElementById('move-counter');if(mc)mc.textContent=moves;
+}
+
+// ── Drag ──
+function startDrag(e){
+  e.preventDefault();
+  const id=e.currentTarget.dataset.id,v=vehicles.find(x=>x.id===id);
+  dragState={v,el:e.currentTarget,startX:e.clientX,startY:e.clientY,origCol:v.col,origRow:v.row,won:false};
+  e.currentTarget.classList.add('dragging');
+  document.addEventListener('mousemove',onDrag);document.addEventListener('mouseup',endDrag);
+}
+function startTouchDrag(e){
+  e.preventDefault();
+  const t=e.touches[0],id=e.currentTarget.dataset.id,v=vehicles.find(x=>x.id===id);
+  dragState={v,el:e.currentTarget,startX:t.clientX,startY:t.clientY,origCol:v.col,origRow:v.row,won:false};
+  e.currentTarget.classList.add('dragging');
+  document.addEventListener('touchmove',onTouchDrag,{passive:false});document.addEventListener('touchend',endTouchDrag);
+}
+function onDrag(e){if(dragState)handleMove(e.clientX,e.clientY);}
+function onTouchDrag(e){e.preventDefault();if(dragState)handleMove(e.touches[0].clientX,e.touches[0].clientY);}
+function handleMove(cx,cy){
+  const{v,el,startX,startY,origCol,origRow}=dragState;
+  const CP=cellPx(),GAP=3;
+  if(v.dir==="H"){
+    const delta=Math.round((cx-startX)/CP);
+    let fc=origCol;
+    if(delta>0){for(let d=1;d<=delta;d++){if(canMoveFrom(v.id,origCol+d,origRow))fc=origCol+d;else break;}}
+    else if(delta<0){for(let d=-1;d>=delta;d--){if(canMoveFrom(v.id,origCol+d,origRow))fc=origCol+d;else break;}}
+    if(fc!==v.col){v.col=fc;el.style.left=`${fc*CP+GAP}px`;if(v.id==="T"&&v.col+v.len>=GS)dragState.won=true;}
+  }else{
+    const delta=Math.round((cy-startY)/CP);
+    let fr=origRow;
+    if(delta>0){for(let d=1;d<=delta;d++){if(canMoveFrom(v.id,origCol,origRow+d))fr=origRow+d;else break;}}
+    else if(delta<0){for(let d=-1;d>=delta;d--){if(canMoveFrom(v.id,origCol,origRow+d))fr=origRow+d;else break;}}
+    if(fr!==v.row){v.row=fr;el.style.top=`${fr*CP+GAP}px`;}
+  }
+}
+function endDrag(){document.removeEventListener('mousemove',onDrag);document.removeEventListener('mouseup',endDrag);finishDrag();}
+function endTouchDrag(){document.removeEventListener('touchmove',onTouchDrag);document.removeEventListener('touchend',endTouchDrag);finishDrag();}
+function finishDrag(){
+  if(!dragState)return;
+  const{v,el,origCol,origRow,won}=dragState;
+  if(v.col!==origCol||v.row!==origRow)moves++;
+  el.classList.remove('dragging');
+  const didWin=won||checkWin();
+  dragState=null;
+  renderGrid();
+  const mc=document.getElementById('move-counter');if(mc)mc.textContent=moves;
+  if(didWin)setTimeout(showWin,250);
+}
+
+// ── Win ──
+function showWin(){solved.add(curLevel);saveSolved();const wm=document.getElementById('win-moves-num');if(wm)wm.textContent=moves;document.getElementById('win-overlay').classList.add('show');updateLevelList();}
+function closeWin(){document.getElementById('win-overlay').classList.remove('show');}
+
+// ── Levels ──
+function loadLevel(idx){
+  curLevel=idx;moves=0;
+  vehicles=LEVELS[idx].vehicles.map(v=>({...v}));
+  const ld=document.getElementById('level-display');if(ld)ld.textContent=idx+1;
+  const ln=document.getElementById('lh-name');if(ln)ln.textContent=LEVELS[idx].name;
+  renderGrid();updateLevelList();
+}
+function resetLevel(){loadLevel(curLevel);}
+function nextLevel(){closeWin();loadLevel((curLevel+1)%LEVELS.length);}
+function updateLevelList(){
+  const c=document.getElementById('level-list');c.innerHTML='';
+  LEVELS.forEach((lvl,i)=>{
+    const btn=document.createElement('button');
+    btn.className=`level-btn${i===curLevel?' active':''}`;
+    btn.innerHTML=`${lvl.name}`;
+    if(solved.has(i)){const m=document.createElement('span');m.className='solved-mark';m.textContent='✓';btn.appendChild(m);}
+    btn.onclick=()=>{closeWin();loadLevel(i);};
+    c.appendChild(btn);
+  });
+}
+updateLevelList();loadLevel(0);
+</script>
+</body>
+</html>
